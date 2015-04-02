@@ -1,0 +1,5 @@
+{
+  "APIUrl": "http://api.quehacenlosdiputados.net",
+  "BLOGUrl": "http://blog.quehacenlosdiputados",
+  "nodePort": "3001"
+}
