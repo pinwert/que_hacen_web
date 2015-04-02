@@ -7,9 +7,9 @@
 				<!--<a href="/"><h1>¿Qué hacen los Diputados?</h1></a>-->
 	         <div class="filtros large-3 columns" id="buscHeader">
                    <div class="filtrosContainer buscador"> 
-						<form action="/search" method="post">
+						<form action="/search" method="get">
 							<input type="submit" value="Buscar">
-							<input type="text" name="q" placeholder="Buscar" />
+							<input class="autocomplete" data-template="0" data-url="/autocomplete" type="text" name="q" placeholder="Buscar" />
 						</form>
 				   </div>
 				</div>

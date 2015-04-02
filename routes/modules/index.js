@@ -1,212 +1,45 @@
-var request = require('request');
-var rsj = require('rsj');
-var _ = require('lodash');
-var _String = require('underscore.string');
-var APIUrl = 'http://localhost:3002';
-var BLOGUrl = 'http://blog.quehacenlosdiputados.net'
+var props = require(appRoot+'/config.json'),
+    request = require('request'),
+    express = require('express');
 
-exports.ultimas_iniciativas = function(req, res) {
-    if (!req.params.limit || isNaN(req.params.limit)) {
-        req.params.limit = 2;
-    }
-    request(APIUrl + "/iniciativas?limit=" + parseInt(req.params.limit) + '&order={"presentadoJS2":-1}', function(error, response, body) {
-        res.render('modules/ultimas-iniciativas-portada', {
-            'iniciativas': JSON.parse(body).result
-        });
-    });
-};
+module.exports = express.Router()
+  .get('/exdiputados', exdiputados)
+  .get('/circunscripcion/:id/diputados', diputados_circunscripcion)
+  .get('/grupos/list', grupos_list)
+  .get('/formaciones', formaciones_grupo)
+  .get('/organo/:id/diputados', diputados_organo)
+  .get('/organos/list', organos_list);
 
+//var rsj = require('rsj');
+//var _ = require('lodash');
+//var _String = require('underscore.string');
 
-/*exports.iniciativas = function(req, res){
-	request( APIUrl+'/iniciativas?limit=30&order={"presentadoJS2":"-1"}', function(error, response, body) {
-	  res.render('modules/iniciativas',{'iniciativas':JSON.parse(body)}); 
-	});
-}*/
-
-exports.ultimas_votaciones = function(req, res) {
-    if (!req.params.limit || isNaN(req.params.limit)) {
-        req.params.limit = 2;
-    }
-    request(APIUrl + "/votaciones?limit=" + parseInt(req.params.limit), function(error, response, body) {
-        res.render('modules/ultimas-votaciones-portada', {
-            'votaciones': JSON.parse(body).result
-        });
-    });
-};
-
-exports.ultimos_posts = function(req, res) {
-    rsj.r2j(BLOGUrl+'/feed/', function(err, json) {
-        //res.send(JSON.parse(json));
-        if (err) {
-            res.send('POSTS error\n'+err);
-        }
-        var posts = JSON.parse(json);
-        var postCollection = [];
-        var totalPosts = (parseInt(req.params.posts)) ? parseInt(req.params.posts) : posts.length;
-        for (var i = 0, last = totalPosts; i < last; i++) {
-            postCollection.push(posts[i]);
-        }
-        res.render('modules/ultimos-posts', {
-            'posts': postCollection
-        });
-    });
-}
-
-exports.mas_iniciativas = function(req, res) {
-    if (!req.params.limit || isNaN(req.params.limit)) {
-        req.params.limit = 10;
-    }
-    request(APIUrl + '/diputados?limit=' + parseInt(req.params.limit) + '&order={"actividad.iniciativas.total":-1}&only=["id","nombre","apellidos","partido","actividad.iniciativas.total"]', function(error, response, body) {
-        res.render('modules/mas-iniciativas', {
-            'diputados': JSON.parse(body)
-        });
-    });
-}
-exports.menos_iniciativas = function(req, res) {
-    if (!req.params.limit || isNaN(req.params.limit)) {
-        req.params.limit = 10;
-    }
-    request(APIUrl + '/diputados?limit=' + parseInt(req.params.limit) + '&order={"actividad.iniciativas.total":1}&only=["id","nombre","apellidos","partido","actividad.iniciativas.total"]', function(error, response, body) {
-        res.render('modules/menos-iniciativas', {
-            'diputados': JSON.parse(body)
-        });
-    });
-}
-exports.diputado_web_tags = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id, function(error, response, body) {
-        var data = JSON.parse(body);
-        var dipURL = _String.slugify(data.nombre + ' ' + data.apellidos);
-        rsj.r2j(BLOGUrl + '/tag/' + dipURL + '/feed/', function(err, json) {
-            //res.send(JSON.parse(json));
-            if (err) {
-                res.end();
-            }
-            res.render('modules/diputado-tags', {
-                'tags': JSON.parse(json)
-            });
-        });
-    });
-}
-exports.diputado_bienes = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '/bienes?order={"tipo":1,"tipoBIU":1,"concepto":1}', function(error, response, body) {
-        var grouped = _.groupBy(JSON.parse(body), function(bien) {
-            return bien.tipo;
-        });
-        res.render('modules/diputado-bienes', {
-            'bienes': grouped
-        });
-    });
-}
-exports.diputado_actividad = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '?only=["actividad","id","nombre","apellidos"]', function(error, response, body) {
-        var respData = JSON.parse(body);
-        res.render('modules/diputado-actividad-parlamentaria', {
-            'actividad': respData.actividad,
-            'votaciones': respData.actividad.votaciones,
-            'diputado': {
-                id: respData.id,
-                nombre: respData.nombre,
-                apellidos: respData.apellidos
-            }
-        });
-    });
-}
-
-exports.diputado_vida_laboral = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '?only=["trayectoria","legislaturas","estudios","cargos_partido","cargos_gobierno","id","nombre","apellidos"]', function(error, response, body) {
-        var respData = JSON.parse(body);
-        res.render('modules/diputado-vida-laboral', {
-            'estudios': respData.estudios,
-            'trayectoria': respData.trayectoria,
-            'cargos_partido': respData.cargos_partido,
-            'cargos_gobierno': respData.cargos_gobierno,
-            'legislaturas': respData.legislaturas,
-            'diputado': {
-                id: respData.id,
-                nombre: respData.nombre,
-                apellidos: respData.apellidos
-            }
-        });
-    });
-}
-
-exports.diputado_cargos_congreso = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '?q={"cargos_congreso.baja":{"$exists":true}}&only=["cargos_congreso","id","nombre","apellidos","sexo"]', function(error, response, body) {
-        request(APIUrl + '/diputados?q={"id":' + req.params.id + ',"cargos_congreso.baja" :{"$exists":false}}&only=["cargos_congreso"]', function(error2, response2, body2) {
-            request(APIUrl + '/organos', function(error3, response3, body3) {
-                var respData = JSON.parse(body);
-                var respData2 = JSON.parse(body2);
-                var respData3 = JSON.parse(body3);
-                res.render('modules/diputado-cargos-congreso', {
-                    'cargos_act': respData.cargos_congreso,
-                    'cargos_hist': respData2.cargos_congreso,
-                    'organos': respData3,
-                    'diputado': {
-                        id: respData.id,
-                        nombre: respData.nombre,
-                        apellidos: respData.apellidos,
-                        sexo: respData.sexo
-                    }
-                });
-            });
-        });
-    });
-}
-
-exports.diputado_salario = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '?only=["sueldo","url_nomina","id","nombre","apellidos"]', function(error, response, body) {
-        var respData = JSON.parse(body);
-        res.render('modules/diputado-salario', {
-            'salario': respData.sueldo,
-            'url_nomina': respData.url_nomina,
-            'diputado': {
-                id: respData.id,
-                nombre: respData.nombre,
-                apellidos: respData.apellidos
-            }
-        });
-    });
-}
-
-
-exports.diputado_votaciones = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '/votaciones?limit=5', function(error, response, body) {
-        //console.log(JSON.parse(body));
-        res.render('modules/diputado-votaciones', {
-            'votaciones': JSON.parse(body)
-        });
-    });
-}
-exports.iniciativas_diputado = function(req, res) {
-    request(APIUrl + '/diputado/' + req.params.id + '/iniciativas?limit=' + req.params.limit + '&order={"presentadoJS2":"-1"}', function(error, response, body) {
-        res.render('modules/ultimas-iniciativas', {
-            'iniciativas': JSON.parse(body)
-        });
-    });
-}
-exports.diputados = function(req, res) {
-    request(APIUrl + '/diputados', function(error, response, body) {
+function diputados(req, res) {
+    request(props.APIUrl + '/diputados', function(error, response, body) {
         res.render('modules/diputados', {
             'diputados': JSON.parse(body)
         });
     });
 }
-exports.exdiputados = function(req, res) {
-    request(APIUrl + '/diputados', function(error, response, body) {
+
+function exdiputados(req, res) {
+    request(props.APIUrl + '/diputados', function(error, response, body) {
         res.render('modules/exdiputados', {
             'diputados': JSON.parse(body)
         });
     });
 }
-exports.diputados_circunscripcion = function(req, res) {
-    request(APIUrl + '/circunscripcion/' + req.params.id + '/diputados', function(error, response, body) {
+
+function diputados_circunscripcion(req, res) {
+    request(props.APIUrl + '/circunscripcion/' + req.params.id + '/diputados', function(error, response, body) {
         res.render('modules/diputados', {
             'diputados': JSON.parse(body)
         });
     });
 }
-exports.organos_list = function(req, res) {
-    request(APIUrl + '/organos', function(error, response, body) {
+
+function organos_list(req, res) {
+    request(props.APIUrl + '/organos', function(error, response, body) {
         res.render('modules/organosList', {
             'organos': JSON.parse(body),
             'active': req.query.active
@@ -214,8 +47,8 @@ exports.organos_list = function(req, res) {
     });
 }
 
-exports.grupos_list = function(req, res) {
-    request(APIUrl + '/grupos', function(error, response, body) {
+function grupos_list(req, res) {
+    request(props.APIUrl + '/grupos', function(error, response, body) {
         res.render('modules/gruposList', {
             'grupos': JSON.parse(body),
             'active': req.query.active
@@ -223,21 +56,7 @@ exports.grupos_list = function(req, res) {
     });
 }
 
-exports.diputados_grupo = function(req, res) {
-    request(APIUrl + '/grupo/' + req.params.id + '/diputados', function(error, response, body) {
-        res.render('modules/diputadosGP', {
-            'diputados': JSON.parse(body)
-        });
-    });
-}
-exports.iniciativas_grupo = function(req, res) {
-    request(APIUrl + '/grupo/' + req.params.id + '/iniciativas?limit=' + req.params.limit + '&order={"presentadoJS2":"-1"}', function(error, response, body) {
-        res.render('modules/ultimas-iniciativas', {
-            'iniciativas': JSON.parse(body)
-        });
-    });
-}
-exports.formaciones_grupo = function(req, res) {
+function formaciones_grupo(req, res) {
 
     var formaciones = req.query.formaciones.split(',');
 
@@ -249,16 +68,15 @@ exports.formaciones_grupo = function(req, res) {
         return r.toString();
     }
 
-    request(APIUrl + '/formaciones?q={"nombre":{"$in":[' + arrayString(formaciones) + ']}}', function(error, response, body) {
+    request(props.APIUrl + '/formaciones?q={"nombre":{"$in":[' + arrayString(formaciones) + ']}}', function(error, response, body) {
         res.render('modules/grupo-formaciones', {
             'formaciones': JSON.parse(body)
         });
     });
 }
 
-
-exports.diputados_organo = function(req, res) {
-    request(APIUrl + '/diputados?q={"cargos_congreso.idOrgano":' + req.params.id + '}&only=["id","nombre","apellidos","grupo","sexo","cargos_congreso","partido","normalized"]', function(error, response, body) {
+function diputados_organo(req, res) {
+    request(props.APIUrl + '/diputados?q={"cargos_congreso.idOrgano":' + req.params.id + '}&only=["id","nombre","apellidos","grupo","sexo","cargos_congreso","partido","normalized"]', function(error, response, body) {
         res.render('modules/diputadosOrg', {
             'diputados': JSON.parse(body),
             "idorgano": req.params.id
