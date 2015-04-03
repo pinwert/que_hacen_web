@@ -746,3 +746,18 @@ a:hover {
   	top: 50px;
   }*/
 }
+.searchWrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: black;
+  opacity: 0.9;
+  height: 100%;
+  width: 100%;
+}
+
+.searchWrap form{
+  margin-top: 10em;
+  margin-left: 10%;
+  width: 80%;
+}
